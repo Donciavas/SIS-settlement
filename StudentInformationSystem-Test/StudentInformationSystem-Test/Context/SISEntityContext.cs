@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace StudentInformationSystem_Test.Context
 {
-    internal class SISEntityContext : DbContext
+    public class SISEntityContext : DbContext
     {
         public DbSet<DepartmentEntity> DepartmentEntities { get; set; }
         public DbSet<LectureEntity> LectureEntities { get; set; }

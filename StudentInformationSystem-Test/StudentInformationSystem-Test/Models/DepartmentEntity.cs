@@ -16,13 +16,22 @@ namespace StudentInformationSystem_Test.Models
         [StringLength(20)]
         public virtual List<LectureEntity> LectureEntities { get; set; }
         public virtual List<StudentEntity> StudentEntities { get; set; }
-
-        public DepartmentEntity(string name)
+        public DepartmentEntity(string name, List<LectureEntity> lectureEntities, List<StudentEntity> studentEntities)
         {
             Id = Guid.NewGuid();
             Name = name;
-            //LectureEntities = new List<LectureEntity>();
-            //StudentEntities = new List<StudentEntity>();
+            LectureEntities = new List<LectureEntity>();
+            StudentEntities = new List<StudentEntity>();
+            LectureEntities = lectureEntities;
+            StudentEntities = studentEntities;
+        }
+        public DepartmentEntity(Guid id, string name)
+        {
+            Id = id;
+            Name = name;
+        }
+        public DepartmentEntity()
+        {
         }
     }
 }
