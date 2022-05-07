@@ -10,7 +10,7 @@ namespace StudentInfoSystem_Exam
         public readonly static DatabaseService _DatabaseService = new();
         public bool MainWindow()
         {
-            ConsoleMessage.DiplayMainWindow();
+            ConsoleMessage.DisplayMainWindow();
             var userInput = Console.ReadLine();
             switch (userInput)
             {
@@ -21,7 +21,7 @@ namespace StudentInfoSystem_Exam
                     AddLectureAndStudentToDepartment();
                     return false;
                 case "3":
-                    AddDepartmentToLecture();
+                    AddLectureToDepartment();
                     return false;
                 case "4":
                     CreateSudentAndAddToDepartment();
@@ -55,17 +55,21 @@ namespace StudentInfoSystem_Exam
                 Console.WriteLine("Enter a new department name: ");
                 Console.WriteLine("-----------------------------------");
                 var departmentName = Console.ReadLine();
-                if (_DatabaseService.CheackIfDepartmentExist(departmentName))
+                if (_DatabaseService.CheckIfDepartmentExist(departmentName))
                 {
+                    Console.WriteLine("");
                     Console.WriteLine($"! Department with this name: '{departmentName}' already exists");
+                    Console.WriteLine("");
                     ConsoleMessage.ContinueMessage();
                     continue;
                 }
-                var department = _DatabaseService.GetOrCreatDepartment(departmentName);
+                var department = _DatabaseService.GetOrCreateDepartment(departmentName);
                 AddLecturesToDepartment(department);
                 AddStudentToDepartment(department);
 
+                Console.WriteLine("");
                 Console.WriteLine("Process of creating Department with lectures and students is done.");
+                Console.WriteLine("");
                 ConsoleMessage.ContinueMessage();
                 exit = true;
             }
@@ -108,6 +112,151 @@ namespace StudentInfoSystem_Exam
                         exit = true;
                     }
                     else if (command == listDepartments.Count + 1) exit = true;
+                    else ConsoleMessage.WrongInputMessage();
+                }
+                else ConsoleMessage.WrongInputMessage();
+            }
+        }
+        public void AddLecturesToDepartment(Department department)
+        {
+            var exit = false;
+            while (!exit)
+            {
+                var listLectures = _DatabaseService.GetAllLecturesByDepartment(department);
+                var dbListLecture = _DatabaseService.GetAllLectures();
+                ConsoleMessage.LectureSelectionWindow(dbListLecture, listLectures);
+                if (Int32.TryParse(Console.ReadLine(), out int command))
+                {
+                    if ((command > 0) && (command <= dbListLecture.Count))
+                    {
+                        var lecture = dbListLecture.ElementAt(command - 1);
+                        _DatabaseService.AssingLectureToDepartment(department, lecture);
+                        continue;
+                    }
+                    else if (command == dbListLecture.Count + 1)
+                    {
+                        Console.WriteLine("");
+                        Console.WriteLine("Enter a new lecture name: ");
+                        Console.WriteLine("");
+
+                        var lecture = _DatabaseService.GetOrCreateLecture(Console.ReadLine());
+                        _DatabaseService.AssingLectureToDepartment(department, lecture);
+                    }
+                    else if (command == dbListLecture.Count + 2) exit = true;
+                    else ConsoleMessage.WrongInputMessage();
+                }
+                else ConsoleMessage.WrongInputMessage();
+            }
+        }
+        public void AddLectureToDepartment()
+        {
+            Console.Clear();
+            Console.WriteLine("");
+            Console.WriteLine("Enter a new lecture name: ");
+            Console.WriteLine("--------------------------");
+            var LectureName = Console.ReadLine();
+            if (_DatabaseService.CheckIfLectureExist(LectureName))
+            {
+                Console.WriteLine("");
+                Console.WriteLine($"! Lecture whith this name: '{LectureName}' already exists");
+                Console.WriteLine("");
+                ConsoleMessage.ContinueMessage();
+                AddLectureToDepartment();
+            }
+            var exit = false;
+            while (!exit)
+            {
+                var dbListDepartment = _DatabaseService.GetDepartmentsList();
+                var lecture = _DatabaseService.GetOrCreateLecture(LectureName);
+                var listDepartments = _DatabaseService.GetDepartmentListByLecture(lecture);
+                ConsoleMessage.LectureToDepartmentsSelectionWindow(dbListDepartment, listDepartments); 
+                if (Int32.TryParse(Console.ReadLine(), out int command))
+                {
+                    if ((command > 0) && (command <= dbListDepartment.Count))
+                    {
+                        var department = dbListDepartment.ElementAt(command - 1);
+                        _DatabaseService.AssingDepartmentToLecture(lecture, department);
+                        continue;
+                    }
+                    else if (command == dbListDepartment.Count + 1) exit = true;
+                    else ConsoleMessage.WrongInputMessage();
+                }
+                else ConsoleMessage.WrongInputMessage();
+            }
+        }
+        public void CreateStudent(Department department)
+        {
+            var skip = false;
+            Console.WriteLine("");
+            Console.WriteLine("Enter a new Student Name: ");
+            Console.WriteLine("");
+            var studentName = Console.ReadLine();
+            Console.WriteLine("");
+            Console.WriteLine("Enter a new Student Last Name: ");
+            Console.WriteLine("");
+            var studentLastName = Console.ReadLine();
+            if (_DatabaseService.CheckIfStudentExist(studentName, studentLastName))
+            {
+                Console.WriteLine("");
+                Console.WriteLine($"! Student {studentName} {studentLastName} already exist");
+                Console.WriteLine("");
+                ConsoleMessage.ContinueMessage();
+                CreateStudent(department);
+                skip = true;
+            }
+            if (!skip)
+            {
+                var newStudent = _DatabaseService.GetOrCreateSudent(studentName, studentLastName, department);
+                AddLectureToStudent(department, newStudent);
+            }
+        }
+        public void AddStudentToDepartment(Department department)
+        {
+            var exit = false;
+            while (!exit)
+            {
+                var departmentSudentsList = _DatabaseService.GetAllStudentsOfDepartment(department.DepartmentName);
+                ConsoleMessage.StudentSelectionWindow(departmentSudentsList);
+                if (Int32.TryParse(Console.ReadLine(), out int command))
+                {
+                    if ((command > 0) && (command <= departmentSudentsList.Count))
+                    {
+                        var student = departmentSudentsList.ElementAt(command - 1);
+                        AddLectureToStudent(department, student);
+                        continue;
+                    }
+                    else if (command == departmentSudentsList.Count + 1)
+                    {
+                        CreateStudent(department);
+                    }
+                    else if (command == departmentSudentsList.Count + 2) exit = true;
+                    else ConsoleMessage.WrongInputMessage();
+                }
+                else ConsoleMessage.WrongInputMessage();
+            }
+        }
+        public void TransferStudent(Department department, Student student)
+        {
+            var newStudent = _DatabaseService.GetOrCreateSudent(student, department);
+            AddLectureToStudent(department, newStudent);
+        }
+        public void AddLectureToStudent(Department department, Student student)
+        {
+            var exit = false;
+            while (!exit)
+            {
+                var departmentListLecture = _DatabaseService.GetAllLecturesByDepartment(department);
+                var studentListLecture = _DatabaseService.GetAllLecturesBySudent(student);
+                ConsoleMessage.StudentLectureSelectionWindow(departmentListLecture, studentListLecture);
+                if (Int32.TryParse(Console.ReadLine(), out int command))
+                {
+                    if ((command > 0) && (command <= departmentListLecture.Count))
+                    {
+                        var lecture = departmentListLecture.ElementAt(command - 1);
+                        _DatabaseService.AssingLectureToStudent(student, lecture);
+                        continue;
+                    }
+                    else if (command == departmentListLecture.Count + 1) break;
                     else ConsoleMessage.WrongInputMessage();
                 }
                 else ConsoleMessage.WrongInputMessage();
@@ -169,141 +318,6 @@ namespace StudentInfoSystem_Exam
                 else ConsoleMessage.WrongInputMessage();
             }
         }
-        public void AddLecturesToDepartment(Department department)
-        {
-            var exit = false;
-            while (!exit)
-            {
-                var listLectures = _DatabaseService.GetAllLecturesByDepartment(department);
-                var dbListLecture = _DatabaseService.GetAllLectures();
-                ConsoleMessage.LectureSelectionWindow(dbListLecture, listLectures);
-                if (Int32.TryParse(Console.ReadLine(), out int command))
-                {
-                    if ((command > 0) && (command <= dbListLecture.Count))
-                    {
-                        var lecture = dbListLecture.ElementAt(command - 1);
-                        _DatabaseService.AssingLectureToDepartment(department, lecture);
-                        continue;
-                    }
-                    else if (command == dbListLecture.Count + 1)
-                    {
-                        Console.WriteLine("Enter a new lecture name: ");
-
-                        var lecture = _DatabaseService.GetOrCreateLecture(Console.ReadLine());
-                        _DatabaseService.AssingLectureToDepartment(department, lecture);
-                    }
-                    else if (command == dbListLecture.Count + 2) exit = true;
-                    else ConsoleMessage.WrongInputMessage();
-                }
-                else ConsoleMessage.WrongInputMessage();
-            }
-        }
-        public void AddDepartmentToLecture()
-        {
-            Console.Clear();
-            Console.WriteLine("");
-            Console.WriteLine("Enter a new lecture name: ");
-            Console.WriteLine("--------------------------");
-            var LectureName = Console.ReadLine();
-            if (_DatabaseService.CheackIfLectureExist(LectureName))
-            {
-                Console.WriteLine($"! Lecture whith this name: '{LectureName}' already exists");
-                ConsoleMessage.ContinueMessage();
-                AddDepartmentToLecture();
-            }
-            var exit = false;
-            while (!exit)
-            {
-                var dbListDepartment = _DatabaseService.GetDepartmentsList();
-                var lecture = _DatabaseService.GetOrCreateLecture(LectureName);
-                var listDepartments = _DatabaseService.GetDepartmentListByLecture(lecture);
-                ConsoleMessage.DepartmentForLectureSelectionWindow(dbListDepartment, listDepartments); 
-                if (Int32.TryParse(Console.ReadLine(), out int command))
-                {
-                    if ((command > 0) && (command <= dbListDepartment.Count))
-                    {
-                        var department = dbListDepartment.ElementAt(command - 1);
-                        _DatabaseService.AssingDepartmentToLecture(lecture, department);
-                        continue;
-                    }
-                    else if (command == dbListDepartment.Count + 1) exit = true;
-                    else ConsoleMessage.WrongInputMessage();
-                }
-                else ConsoleMessage.WrongInputMessage();
-            }
-        }
-        public void AddStudentToDepartment(Department department)
-        {
-            var exit = false;
-            while (!exit)
-            {
-                var departmentSudentsList = _DatabaseService.GetAllStudentsOfDepartment(department.DepartmentName);
-                ConsoleMessage.StudentSelectionWindow(departmentSudentsList);
-                if (Int32.TryParse(Console.ReadLine(), out int command))
-                {
-                    if ((command > 0) && (command <= departmentSudentsList.Count))
-                    {
-                        var student = departmentSudentsList.ElementAt(command - 1);
-                        AddLectureToStudent(department, student);
-                        continue;
-                    }
-                    else if (command == departmentSudentsList.Count + 1)
-                    {
-                        CreateStudent(department);
-                    }
-                    else if (command == departmentSudentsList.Count + 2) exit = true;
-                    else ConsoleMessage.WrongInputMessage();
-                }
-                else ConsoleMessage.WrongInputMessage();
-            }
-        }
-        public void CreateStudent(Department department)
-        {
-            var skip = false;
-            Console.WriteLine("Enter a new Student Name: ");
-            var studentName = Console.ReadLine();
-            Console.WriteLine("Enter a new Student Last Name: ");
-            var studentLastName = Console.ReadLine();
-            if (_DatabaseService.CheackIfStudentExist(studentName, studentLastName))
-            {
-                Console.WriteLine($"! Student {studentName} {studentLastName} already exist");
-                ConsoleMessage.ContinueMessage();
-                CreateStudent(department);
-                skip = true;
-            }
-            if (!skip)
-            {
-                var newStudent = _DatabaseService.GetOrCreateSudent(studentName, studentLastName, department);
-                AddLectureToStudent(department, newStudent);
-            }
-        }
-        public void TransferStudent(Department department, Student student)
-        {
-            var newStudent = _DatabaseService.GetOrCreateSudent(student, department);
-            AddLectureToStudent(department, newStudent);
-        }
-        public void AddLectureToStudent(Department department, Student student)
-        {
-            var exit = false;
-            while (!exit)
-            {
-                var departmentListLecture = _DatabaseService.GetAllLecturesByDepartment(department);
-                var studentListLecture = _DatabaseService.GetAllLecturesBySudent(student);
-                ConsoleMessage.StudentLectureSelectionWindow(departmentListLecture, studentListLecture);
-                if (Int32.TryParse(Console.ReadLine(), out int command))
-                {
-                    if ((command > 0) && (command <= departmentListLecture.Count))
-                    {
-                        var lecture = departmentListLecture.ElementAt(command - 1);
-                        _DatabaseService.AssingLectureToStudent(student, lecture);
-                        continue;
-                    }
-                    else if (command == departmentListLecture.Count + 1) break;
-                    else ConsoleMessage.WrongInputMessage();
-                }
-                else ConsoleMessage.WrongInputMessage();
-            }
-        }
         public void DisplayDepartmentStudents()
         {
             var exit = false;
@@ -325,7 +339,9 @@ namespace StudentInfoSystem_Exam
                     {
                         var department = listDepatments.ElementAt(command - 1);
                         Console.Clear();
-                        Console.WriteLine($"List of the students in {department} department: ");
+                        Console.WriteLine("");
+                        Console.WriteLine($"List of students in {department} department: ");
+                        Console.WriteLine("");
                         var listStudents = _DatabaseService.GetStudentListByDepartment(department);
                         foreach (var student in listStudents)
                         {
@@ -345,6 +361,7 @@ namespace StudentInfoSystem_Exam
             while (!exit)
             {
                 Console.Clear();
+                Console.WriteLine("");
                 Console.WriteLine("Select a department to view it's lectures: ");
                 Console.WriteLine("-------------------------------------------");
                 var listDepatments = _DatabaseService.GetDepartmentsListWhithLecture();
@@ -359,7 +376,7 @@ namespace StudentInfoSystem_Exam
                     {
                         var department = listDepatments.ElementAt(command - 1);
                         Console.Clear();
-                        Console.WriteLine($"List of the students in {department} department: ");
+                        Console.WriteLine($"List of lectures in {department} department: ");
                         foreach (var lecture in department.ListLectures)
                         {
                             Console.WriteLine($"{department.ListLectures.IndexOf(lecture) + 1} - {lecture}");
@@ -378,6 +395,7 @@ namespace StudentInfoSystem_Exam
             while (!exit)
             {
                 Console.Clear();
+                Console.WriteLine("");
                 Console.WriteLine("Select a Student to view it's lectures: ");
                 Console.WriteLine("----------------------------------------");
                 var listStudents = _DatabaseService.GetStudentListWhithLecture();
@@ -392,7 +410,9 @@ namespace StudentInfoSystem_Exam
                     {
                         var student = listStudents.ElementAt(command - 1);
                         Console.Clear();
-                        Console.WriteLine($"List of the lectures of {student}: ");
+                        Console.WriteLine("");
+                        Console.WriteLine($"List of lectures of {student}: ");
+                        Console.WriteLine("");
                         foreach (var lecture in student.ListLecture)
                         {
                             Console.WriteLine($"{student.ListLecture.IndexOf(lecture) + 1} - {lecture}");

@@ -10,12 +10,23 @@ namespace StudentInfoSystem_Exam.Contexts
     public class DatabaseService
     {
         private readonly static SISContext _dbContext = new SISContext();
-        public Lecture GetOrCreateLecture(string nameOfLecture)
+        public Department GetOrCreateDepartment(string departmentName)
         {
-            var lecture = _dbContext.Lectures.FirstOrDefault(x => x.LectureName == nameOfLecture);
+            var department = _dbContext.Departments.SingleOrDefault(x => x.DepartmentName == departmentName);
+            if (department == null)
+            {
+                department = new Department { Id = Guid.NewGuid(), DepartmentName = departmentName };
+                _dbContext.Departments.Add(department);
+                _dbContext.SaveChanges();
+            }
+            return department;
+        }
+        public Lecture GetOrCreateLecture(string lectureName)
+        {
+            var lecture = _dbContext.Lectures.FirstOrDefault(x => x.LectureName == lectureName);
             if (lecture == null)
             {
-                lecture = new Lecture { Id = Guid.NewGuid(), LectureName = nameOfLecture };
+                lecture = new Lecture { Id = Guid.NewGuid(), LectureName = lectureName };
                 _dbContext.Lectures.Add(lecture);
                 _dbContext.SaveChanges();
             }
@@ -52,18 +63,7 @@ namespace StudentInfoSystem_Exam.Contexts
             _dbContext.Student.Add(newStudent);
             _dbContext.SaveChanges();
             return student;
-        }
-        public Department GetOrCreatDepartment(string departmentName)
-        {
-            var department = _dbContext.Departments.SingleOrDefault(x => x.DepartmentName == departmentName);
-            if (department == null)
-            {
-                department = new Department { Id = Guid.NewGuid(), DepartmentName = departmentName };
-                _dbContext.Departments.Add(department);
-                _dbContext.SaveChanges();
-            }
-            return department;
-        }
+        } 
         public List<Department> GetDepartmentsList()
         {
             return _dbContext.Departments.ToList();
@@ -72,45 +72,49 @@ namespace StudentInfoSystem_Exam.Contexts
         {
             return _dbContext.Departments.Include(lect => lect.ListLectures).ToList();
         }
-        public List<Student> GetStudentListByDepartment(Department department)
-        {
-            return _dbContext.Student.Where(x => x.Department == department).ToList();
-        }
         public List<Department> GetDepartmentListByLecture(Lecture lecture)
         {
             return _dbContext.Departments.Where(x => x.ListLectures.Contains(lecture)).ToList();
         }
+        public List<Student> GetStudentListByDepartment(Department department)
+        {
+            return _dbContext.Student.Where(x => x.Department == department).ToList();
+        }
         public List<Student> GetStudentListWhithLecture()
         {
-            return _dbContext.Student.Include(stud => stud.ListLecture).ToList();
+            return _dbContext.Student.Include(student => student.ListLecture).ToList();
         }
-        public bool CheackIfDepartmentExist(string departmentName)
+        public bool CheckIfDepartmentExist(string departmentName)
         {
             return _dbContext.Departments.Any(x => x.DepartmentName == departmentName);
         }
-        public bool CheackIfStudentExist(string name, string lastName)
+        public bool CheckIfStudentExist(string name, string lastName)
         {
             return _dbContext.Student.Any(x => x.Name == name && x.LastName == lastName);
         }
-        public bool CheackIfLectureExist(string lectureName)
+        public bool CheckIfLectureExist(string lectureName)
         {
             return _dbContext.Lectures.Any(x => x.LectureName == lectureName);
         }
-        public List<Lecture> GetAllLectures()
+        public void AssingDepartmentToLecture(Lecture lecture, Department department)
         {
-            return _dbContext.Lectures.ToList();
-        }
-        public List<Lecture> GetAllLecturesByDepartment(Department department)
-        {
-            return _dbContext.Lectures.Include(lect => lect.ListDepartments).Where(x => x.ListDepartments.Contains(department)).ToList();
-        }
-        public List<Lecture> GetAllLecturesBySudent(Student student)
-        {
-            return _dbContext.Lectures.Include(lect => lect.Student).Where(x => x.Student.Contains(student)).ToList();
+            var existingLecture = _dbContext.Lectures.Where(x => x.LectureName == lecture.LectureName)
+                                                     .Include(lectures => lectures.ListDepartments).SingleOrDefault();
+            if (existingLecture != null)
+            {
+                var existingDepartment = existingLecture.ListDepartments
+                    .Where(c => c.Id == department.Id)
+                    .SingleOrDefault();
+                if (existingDepartment == null)
+                {
+                    existingLecture.ListDepartments.Add(department);
+                    _dbContext.SaveChanges();
+                }
+            }
         }
         public void AssingLectureToDepartment(Department department, Lecture lecture)
         {
-            var existingDepartment = _dbContext.Departments.Where(x => x.DepartmentName == department.DepartmentName).Include(depart => depart.ListLectures).SingleOrDefault();
+            var existingDepartment = _dbContext.Departments.Where(x => x.DepartmentName == department.DepartmentName).Include(departments => departments.ListLectures).SingleOrDefault();
             if (existingDepartment != null)
             {
                 var existingLecture = existingDepartment.ListLectures
@@ -127,7 +131,7 @@ namespace StudentInfoSystem_Exam.Contexts
         public void AssingLectureToStudent(Student student, Lecture lecture)
         {
             var existingStudent = _dbContext.Student.Where(x => x.Name == student.Name && x.LastName == student.LastName)
-                                                    .Include(stud => stud.ListLecture).SingleOrDefault();
+                                                    .Include(students => students.ListLecture).SingleOrDefault();
             if (existingStudent != null)
             {
                 var existingLecture = existingStudent.ListLecture
@@ -141,29 +145,25 @@ namespace StudentInfoSystem_Exam.Contexts
                 }
             }
         }
-        public void AssingDepartmentToLecture(Lecture lecture, Department department)
+        public List<Lecture> GetAllLectures()
         {
-            var existingLecture = _dbContext.Lectures.Where(x => x.LectureName == lecture.LectureName)
-                                                     .Include(lect => lect.ListDepartments).SingleOrDefault();
-            if (existingLecture != null)
-            {
-                var existingDepartment = existingLecture.ListDepartments
-                    .Where(c => c.Id == department.Id)
-                    .SingleOrDefault();
-                if (existingDepartment == null)
-                {
-                    existingLecture.ListDepartments.Add(department);
-                    _dbContext.SaveChanges();
-                }
-            }
+            return _dbContext.Lectures.ToList();
+        }
+        public List<Lecture> GetAllLecturesByDepartment(Department department)
+        {
+            return _dbContext.Lectures.Include(lecture => lecture.ListDepartments).Where(x => x.ListDepartments.Contains(department)).ToList();
+        }
+        public List<Lecture> GetAllLecturesBySudent(Student student)
+        {
+            return _dbContext.Lectures.Include(lecture => lecture.Student).Where(x => x.Student.Contains(student)).ToList();
         }
         public List<Student> GetAllStudentsOfDepartment(string depertmentName)
         {
-            return _dbContext.Student.Include(depart => depart.Department).Where(x => x.Department.DepartmentName == depertmentName).ToList();
+            return _dbContext.Student.Include(department => department.Department).Where(x => x.Department.DepartmentName == depertmentName).ToList();
         }
         public void RemoveStudent(Student student)
         {
-            var deletestudent = _dbContext.Student.Where(x => x.Equals(student)).Include(stud => stud.ListLecture).SingleOrDefault();
+            var deletestudent = _dbContext.Student.Where(x => x.Equals(student)).Include(students => students.ListLecture).SingleOrDefault();
             _dbContext.Student.Remove(deletestudent);
             _dbContext.SaveChanges();
         }
