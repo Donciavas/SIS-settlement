@@ -1,4 +1,4 @@
-# SIS-exam
+# SIS-settlement
 
 Student Information System
 
